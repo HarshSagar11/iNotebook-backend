@@ -6,10 +6,10 @@ const express = require('express')
 const app = express()
 const port = 5001
 
-// respond with "hello world" when a GET request is made to the homepage
-app.get('/', (req, res) => {
-  res.send('hello world')
-})
+app.use(express.json())
+
+app.use('/api/auth',require('./routes/auth'))
+app.use('/api/notes',require('./routes/notes'))
 
 app.listen(port,()=>{
     console.log(`Expample of listening at${port}`)
