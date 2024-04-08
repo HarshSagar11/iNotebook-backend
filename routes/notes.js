@@ -5,8 +5,17 @@ const Note = require('../models/Notes')
 const router = express.Router();
 
 router.get('/fetchallnotes',fetchuser,async(req,res)=>{
-    const notes = await Note.find({user : req.user.id})
-    res.json(notes);
+    let success = false;
+    try{
+        const notes = await Note.find({user : req.user.id})
+        if(notes){
+            success = true;
+            res.json({notes,success});
+        }
+    }
+    catch(e){
+        res.status(500).json({notes:[],success});
+    }
 })
 
 router.post('/addNote',
@@ -16,25 +25,28 @@ router.post('/addNote',
         body('description').isLength({min:3}).withMessage('Name length must be greater than 3.'),
     ],
     async(req,res)=>{
-        const errors = validationResult(req);
-        if(!errors.isEmpty()){
-            return res.status(400).json({ "errors": errors.array()});
-        }
+        let success = false;
         try{
+            const errors = validationResult(req);
+            if(!errors.isEmpty()){
+                return res.status(400).json({ "errors": errors.array()});
+            }
             const {title,description,tag}=req.body;
             const note = new Note({title,description,tag,user : req.user.id});
             const savedNote = await note.save();
-            res.json(savedNote);
+            success = true
+            res.json({savedNote,success});
         }
         catch(error){
             //returning internal server error if any unexpected things happend
             console.error(error.message);
-            res.status(500).json({error:"Internal server Error"})
+            res.status(500).json({error:"Internal server Error",success})
         }
 
 })
 
 router.put('/updatenote/:id',fetchuser, async(req,res)=>{
+    let success = false;
     try{
         const {title, description, tag} = req.body;
         const newNote = {}
@@ -50,16 +62,18 @@ router.put('/updatenote/:id',fetchuser, async(req,res)=>{
         }
     
         note = await Note.findByIdAndUpdate(req.params.id,{$set : newNote}, {new : true});
-        res.json({note});
+        success = true;
+        res.json({note,success});
     }
     catch(error){
         //returning internal server error if any unexpected things happend
         console.error(error.message);
-        res.status(500).json({error:"Internal server Error"})
+        res.status(500).json({error:"Internal server Error",success})
     }
 })
 
 router.delete('/deletenote/:id',fetchuser, async(req,res)=>{
+    let success = false;
     try{
         let note = await Note.findById(req.params.id);
         if(!note){return res.status(404),send('Not found')};
@@ -69,12 +83,13 @@ router.delete('/deletenote/:id',fetchuser, async(req,res)=>{
         }
     
         note = await Note.findByIdAndDelete(req.params.id);
+        success = true;
         res.json({note});
     }
     catch(error){
         //returning internal server error if any unexpected things happend
         console.error(error.message);
-        res.status(500).json({error:"Internal server Error"})
+        res.status(500).json({error:"Internal server Error",success})
     }
 })
 
