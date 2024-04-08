@@ -19,16 +19,17 @@ router.post('/createuser',
     ],
     async (req,res)=>{
         // after validation we check for any error and return the validation result with error if any
-        const errors = validationResult(req);
-        if(!errors.isEmpty()){
-            return res.status(400).json({ "errors": errors.array()});
-        }
+        let success = false;
         try{
+            const errors = validationResult(req);
+            if(!errors.isEmpty()){
+                return res.status(400).json({ "errors": errors.array() , success});
+            }
             //trying to find a user with same email address and return if user is found
             let user = await User.findOne({email:req.body.email});
-            console.log(user)
+            //console.log(user)
             if(user){
-                return res.status(400).json({error:'Email Already Exist'})
+                return res.status(400).json({error:'Email Already Exist' , success})
             }
             
             //genrating password hash
@@ -51,13 +52,13 @@ router.post('/createuser',
 
             //returning jwt token which will later be used for autentication of user
             const authToken = jwt.sign(data,JWT_SECRET)
-
-            res.status(200).json({authToken});
+            success = true
+            res.status(200).json({authToken,success});
         }
         catch(error){
             //returning internal server error if any unexpected things happend
             console.error(error.message);
-            res.status(500).json({error:"Internal server Error"})
+            res.status(500).json({error:"Internal server Error", success})
         }
 })
 
@@ -69,21 +70,22 @@ router.post('/login',
         body('password').isLength({min:6}).withMessage('Please Enter valid credentials.2')
     ],
     async (req,res)=>{
-        const error = validationResult(req);
-        if(!error.isEmpty()){
-            res.status(401).json({errors:error.array()})
-        }
-        const {email,password} = req.body
+        let success = false;
         try{
+            const error = validationResult(req);
+            if(!error.isEmpty()){
+                return res.status(401).json({errors:error.array(),success})
+            }
+            const {email,password} = req.body
             let user = await User.findOne({email:email});
-            console.log(user)
+            //console.log(user)
             if(!user){
-                return res.status(400).json({error:'Please Enter valid credentials.3'})
+                return res.status(400).json({error:'Please Enter valid credentials.3',success})
             }
             //compare the password sent with the password hash stored returning if not matching
             const passCompare = await bcrypt.compare(password,user.password)
             if(!passCompare){
-                return res.status(400).json({error:'Please Enter valid credentials.4'})
+                return res.status(400).json({error:'Please Enter valid credentials.4', success})
             }
 
             // returning the auth token
@@ -93,13 +95,13 @@ router.post('/login',
                 }
             };
             const authToken = jwt.sign(data,JWT_SECRET)
-
-            res.status(200).json({authToken});
+            success  = true;
+            res.status(200).json({authToken,success});
 
         }
         catch(error){
             console.error(error.message);
-            res.status(500).json({error:"Internal server Error"})
+            res.status(500).json({error:"Internal server Error", success})
         }
     }
 )
@@ -113,7 +115,7 @@ router.post('/getuser',fetchuser,async (req,res)=>{
         res.status(200).send(user);
     }
     catch(error){
-        console.log(error)
+        //console.log(error)
         res.status(500).json({error:"Internal server Error"})
     }
 })
